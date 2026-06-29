@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dsize</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 id="page-title">dsize</h1>
+    <div class="subtitle" id="header-subtitle">Scanning…</div>
+  </div>
+  <div class="header-actions">
+    <button id="pick-btn" class="pick-btn">📁 Choose folder…</button>
+    <button id="theme-toggle" aria-label="Toggle dark/light mode">🌙 Theme</button>
+  </div>
+</header>
+
+<main>
+  <!-- Welcome / empty state (shown when no folder is selected) -->
+  <section id="welcome" aria-label="Choose a folder" style="display:none">
+    <div class="welcome-card">
+      <div class="welcome-icon">📁</div>
+      <h2>Choose a folder to scan</h2>
+      <p>Pick any directory on your disk to see what's using space.</p>
+      <button id="welcome-pick-btn" class="pick-btn pick-btn-lg">📁 Choose folder…</button>
+      <form id="path-fallback" class="path-fallback" style="display:none">
+        <label for="path-input">Or enter a folder path:</label>
+        <div class="path-row">
+          <input id="path-input" type="text" placeholder="/Users/you/Documents" autocomplete="off" />
+          <button type="submit">Scan</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Breadcrumb of the current scan root (hidden until results arrive) -->
+  <nav class="breadcrumb" id="breadcrumb" aria-label="Scan path" style="display:none"></nav>
+
+  <!-- Tabs (hidden until results arrive) -->
+  <nav class="tabs" id="tabs" style="display:none">
+    <button class="tab-btn active" data-tab="results">Results</button>
+    <button class="tab-btn"        data-tab="history">History</button>
+  </nav>
+
+  <!-- ── Progress view ── -->
+  <section id="progress-view" aria-label="Scan progress">
+    <div class="progress-track" role="progressbar" aria-label="Scanning">
+      <div class="progress-bar"></div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Size</div>
+        <div class="stat-value" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Files</div>
+        <div class="stat-value" id="stat-files">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Dirs</div>
+        <div class="stat-value" id="stat-dirs">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Elapsed</div>
+        <div class="stat-value" id="stat-elapsed">00:00:00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Speed</div>
+        <div class="stat-value" id="stat-fps">—</div>
+      </div>
+    </div>
+
+    <div id="current-path">Waiting for scan to start…</div>
+  </section>
+
+  <!-- ── Results view ── -->
+  <section id="results-view" aria-label="Scan results">
+    <div class="total-hero">
+      <span class="total-hero-label">Total size</span>
+      <span class="total-hero-value" id="total-hero-value">—</span>
+    </div>
+
+    <div class="results-header">
+      <div class="results-summary" id="results-summary"></div>
+      <div class="sort-controls" role="group" aria-label="Sort results">
+        <span style="font-size:.75rem;color:var(--text-muted)">Sort:</span>
+        <button class="sort-btn active" data-sort="size">Size</button>
+        <button class="sort-btn"        data-sort="name">Name</button>
+        <button class="sort-btn"        data-sort="trend">Trend</button>
+      </div>
+    </div>
+
+    <div id="bar-list" role="list" aria-label="Disk usage entries"></div>
+  </section>
+
+  <!-- ── History view ── -->
+  <section id="history-view" aria-label="Scan history">
+    <div class="chart-container">
+      <canvas id="history-chart"></canvas>
+    </div>
+    <div class="history-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Total Size</th>
+            <th>Δ vs Previous</th>
+            <th>File Count</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Tooltip (FR-5.6) -->
+<div id="tooltip" class="tooltip" role="tooltip" aria-hidden="true">
+  <div class="tooltip-path"  id="tt-path"></div>
+  <div class="tooltip-bytes" id="tt-bytes"></div>
+</div>
+
+<script src="/static/chart.js"></script>
+<script src="/static/charts.js"></script>
+<script src="/static/app.js"></script>
+
+<script>
+  // After results arrive, show tabs and update title (FR-4.3).
+  // app.js fires a custom event when the complete SSE comes in.
+  (function () {
+    var originalShowResults = null;
+    // Patch title when complete arrives via SSE.
+    document.addEventListener('dsize:complete', function (ev) {
+      var target = ev.detail && ev.detail.target;
+      if (target) {
+        document.title = 'dsize — ' + target;
+        document.getElementById('page-title').textContent = 'dsize — ' + target;
+        document.getElementById('header-subtitle').textContent =
+          ev.detail.fileCount + ' files · ' + ev.detail.dirCount + ' dirs';
+      }
+      document.getElementById('tabs').style.display = '';
+    });
+  })();
+</script>
+</body>
+</html>

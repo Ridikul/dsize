@@ -1,0 +1,7 @@
+# Build output
+/dist/
+# Compiled binaries
+/src/dsize
+/src/dsize.exe
+src/cmd/dsize/dsize
+.DS_Store
