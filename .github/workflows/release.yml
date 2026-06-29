@@ -1,0 +1,35 @@
+name: release
+
+# Build all platform binaries and publish a GitHub Release whenever a v* tag
+# is pushed:  git tag v2.2.0 && git push origin v2.2.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+
+      - name: Build binaries
+        run: VERSION="${GITHUB_REF_NAME#v}" ./deploy.sh
+
+      - name: Generate checksums
+        run: (cd dist && sha256sum dsize-* > checksums.txt)
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/dsize-* dist/checksums.txt \
+            --title "dsize ${GITHUB_REF_NAME}" \
+            --generate-notes
